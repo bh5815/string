@@ -31,6 +31,7 @@ import (
 func main() {
 	yamlToMd := flag.Bool("ym", false, "YAML to Markdown")
 	yamlToMdList := flag.Bool("yml", false, "YAML to Markdown list")
+	mdToConfluence := flag.Bool("mc", false, "Markdown to Confluence")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Convert strings of clipboard.\n")
 		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
@@ -45,6 +46,8 @@ func main() {
 		output = convertYamlToMd(clip)
 	} else if *yamlToMdList {
 		output = convertYamlToMdList(clip)
+	} else if *mdToConfluence {
+		output = convertMarkdownToConfluence(clip)
 	} else {
 		flag.Usage()
 		os.Exit(1)
@@ -147,6 +150,27 @@ func convertYamlToMdList(input string) string {
 		s = strings.Trim(line, " ")
 		s = reHttp.ReplaceAllString(s, "<$1>")
 		s = reContent.ReplaceAllString(s, spaces+"* $1")
+		output.WriteString(s + "\n")
+	}
+
+	return output.String()
+}
+
+func convertMarkdownToConfluence(input string) string {
+	var output bytes.Buffer
+
+	reHttp := regexp.MustCompile(`(.*)<(http[^\s,\,]+)>`)
+
+	scanner := bufio.NewScanner(strings.NewReader(input))
+	for scanner.Scan() {
+		line := scanner.Text()
+		var s string
+
+		if reHttp.MatchString(line) {
+			s = reHttp.ReplaceAllString(line, "$1$2")
+		} else {
+			s = line
+		}
 		output.WriteString(s + "\n")
 	}
 
